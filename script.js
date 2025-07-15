@@ -189,7 +189,6 @@ document.addEventListener('DOMContentLoaded', function () {
     async function handleFormSubmit(e) {
         e.preventDefault();
 
-
         const taskId = document.getElementById('taskId').value;
         const days = parseInt(document.getElementById('taskDays').value) || 1;
         const startDate = document.getElementById('taskDate').value;
@@ -205,8 +204,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const user = firebase.auth().currentUser;
 
         const taskData = {
-            uid: user.uid, // Task creator
-            sharedWith: [], // Initially empty
+            uid: user.uid, // 👈 Task owner
+            sharedWith: user.uid === "sU0SCRR320a3nSLCHAwBHyN3Jc43" 
+                ? ["qtFgYZrPJsa6k9EUqym0PlEYGzx1"] // 👈 Only admin shares with Rithu
+                : [], // 👈 Other users = private
             title: document.getElementById('taskTitle').value.trim(),
             days: days,
             date: startDate,
