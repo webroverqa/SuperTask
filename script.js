@@ -1,5 +1,65 @@
 document.addEventListener('DOMContentLoaded', function () {
-    // DOM Elements
+
+    // Firebase Auth Elements and Logic
+    const auth = firebase.auth();
+
+    // Elements
+    const loginForm = document.getElementById('loginForm');
+    const signupForm = document.getElementById('signupForm');
+    const userSection = document.getElementById('userSection');
+    const loginBtn = document.getElementById('loginBtn');
+    const signupBtn = document.getElementById('signupBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const userEmail = document.getElementById('userEmail');
+
+    // Switch forms
+    document.getElementById('showSignup').onclick = () => {
+      loginForm.style.display = 'none';
+      signupForm.style.display = 'block';
+    };
+    document.getElementById('showLogin').onclick = () => {
+      signupForm.style.display = 'none';
+      loginForm.style.display = 'block';
+    };
+
+    // Login
+    loginBtn.onclick = () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => console.log("Logged in"))
+        .catch(err => alert("Login failed: " + err.message));
+    };
+
+    // Signup
+    signupBtn.onclick = () => {
+      const email = document.getElementById('signupEmail').value;
+      const password = document.getElementById('signupPassword').value;
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(() => alert("Account created. You can log in now."))
+        .catch(err => alert("Signup failed: " + err.message));
+    };
+
+    // Logout
+    logoutBtn.onclick = () => auth.signOut();
+
+    // Auth state change
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        loginForm.style.display = 'none';
+        signupForm.style.display = 'none';
+        userSection.style.display = 'block';
+        userEmail.textContent = `Logged in as: ${user.email}`;
+        loadTasks(); // 👈 Only load tasks if logged in
+      } else {
+        loginForm.style.display = 'block';
+        signupForm.style.display = 'none';
+        userSection.style.display = 'none';
+        tasksContainer.innerHTML = ''; // Clear tasks if logged out
+      }
+    });
+
+    // DOM Elements for tasks
     const addTaskBtn = document.getElementById('addTaskBtn');
     const taskModal = document.getElementById('taskModal');
     const closeBtn = document.querySelector('.close');
