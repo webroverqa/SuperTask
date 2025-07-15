@@ -228,12 +228,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             if (taskId) {
+                // Update existing task
                 await db.collection('tasks').doc(taskId).set(taskData);
             } else {
+                // Add new task
                 await db.collection('tasks').add(taskData);
             }
             closeModal();
-            loadTasks();
+            loadTasks(); // ✅ Refresh the task list after saving
         } catch (error) {
             console.error("Error saving task:", error);
             showError("Error saving task.");
