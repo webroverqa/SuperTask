@@ -99,24 +99,40 @@ document.addEventListener('DOMContentLoaded', function () {
     async function loadTasks() {
         showLoading();
         try {
-            const snapshot = await db.collection('tasks').get();
-            tasks = snapshot.docs.map(doc => {
-                const data = doc.data();
-                // Migrate old tasks to new structure
-                if (data.active !== undefined) {
-                    data.status = data.active ? 'Pending' : 'Cancelled';
-                    delete data.active;
+            const user = firebase.auth().currentUser;
+
+            const snapshot = await db.collection('tasks')
+                .where('sharedWith', 'array-contains', user.uid)
+                .get();
+
+            const ownTasksSnapshot = await db.collection('tasks')
+                .where('uid', '==', user.uid)
+                .get();
+
+            const allDocs = [...snapshot.docs, ...ownTasksSnapshot.docs];
+            const seen = new Set(); // Avoid duplicates
+            tasks = [];
+
+            allDocs.forEach(doc => {
+                if (!seen.has(doc.id)) {
+                    seen.add(doc.id);
+                    const data = doc.data();
+                    // Migrate old tasks to new structure
+                    if (data.active !== undefined) {
+                        data.status = data.active ? 'Pending' : 'Cancelled';
+                        delete data.active;
+                    }
+                    if (data.time && !data.startTime) {
+                        data.startTime = data.time;
+                        delete data.time;
+                    }
+                    if (!data.days) {
+                        data.days = 1;
+                    }
+                    tasks.push({ id: doc.id, ...data });
                 }
-                if (data.time && !data.startTime) {
-                    data.startTime = data.time;
-                    delete data.time;
-                }
-                if (!data.days) {
-                    data.days = 1;
-                }
-                return { id: doc.id, ...data };
             });
-            
+
             if (tasks.length > 0) {
                 // Sort tasks by start date (newest first) then by time
                 tasks.sort((a, b) => {
@@ -173,10 +189,11 @@ document.addEventListener('DOMContentLoaded', function () {
     async function handleFormSubmit(e) {
         e.preventDefault();
 
+
         const taskId = document.getElementById('taskId').value;
         const days = parseInt(document.getElementById('taskDays').value) || 1;
         const startDate = document.getElementById('taskDate').value;
-        
+
         // Calculate end date if not provided
         let endDate = document.getElementById('taskEndDate').value;
         if (!endDate && days > 1) {
@@ -185,7 +202,11 @@ document.addEventListener('DOMContentLoaded', function () {
             endDate = end.toISOString().split('T')[0];
         }
 
+        const user = firebase.auth().currentUser;
+
         const taskData = {
+            uid: user.uid, // Task creator
+            sharedWith: [], // Initially empty
             title: document.getElementById('taskTitle').value.trim(),
             days: days,
             date: startDate,
